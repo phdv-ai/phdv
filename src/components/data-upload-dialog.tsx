@@ -215,6 +215,16 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
               <p className="text-gray-400">
                 Choose the type of health data you want to upload. AI will analyze it and you'll earn PHDV tokens.
               </p>
+              <p className="text-sm text-gray-400 mt-2">
+                Don't have health data yet?{" "}
+                <a
+                  href="/sample_health_report.pdf"
+                  download
+                  className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
+                >
+                  Download sample report
+                </a>
+              </p>
             </div>
 
             {/* Type Selection */}
@@ -226,18 +236,16 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                   return (
                     <div
                       key={type.id}
-                      className={`p-4 cursor-pointer transition-all rounded-xl border ${
-                        isSelected
+                      className={`p-4 cursor-pointer transition-all rounded-xl border ${isSelected
                           ? "border-cyan-400 bg-cyan-400/10"
                           : "border-cyan-400/30 bg-cyan-900/10 hover:border-cyan-400/50 hover:bg-cyan-900/20"
-                      }`}
+                        }`}
                       onClick={() => setSelectedType(type.id)}
                     >
                       <div className="flex items-start gap-4">
                         <div
-                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
-                            isSelected ? "bg-cyan-400 text-white" : "bg-cyan-400/10 text-cyan-400"
-                          }`}
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-cyan-400 text-white" : "bg-cyan-400/10 text-cyan-400"
+                            }`}
                         >
                           <Icon className="h-6 w-6" />
                         </div>
@@ -259,6 +267,19 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
             {/* File Upload Area */}
             {selectedType && !analyzing && !showResults && (
               <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-400">
+                    Don't have health data yet?{" "}
+                    <a
+                      href="/sample_health_report.pdf"
+                      download
+                      className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
+                    >
+                      Download sample report
+                    </a>
+                  </p>
+                </div>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -399,9 +420,8 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
             {/* Token Reward */}
             {showResults && analysisResult?.tokenReward && (
               <div
-                className={`bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border-2 border-cyan-400 rounded-xl p-4 mb-4 ${
-                  tokenAnimation ? "animate-scale-in" : ""
-                }`}
+                className={`bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border-2 border-cyan-400 rounded-xl p-4 mb-4 ${tokenAnimation ? "animate-scale-in" : ""
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -601,13 +621,12 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                               <div className="flex items-start justify-between mb-2">
                                 <span className="text-white font-medium">{finding.parameter}</span>
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    finding.status === "normal"
+                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${finding.status === "normal"
                                       ? "bg-green-500/10 text-green-400"
                                       : finding.status === "low" || finding.status === "high"
-                                      ? "bg-yellow-500/10 text-yellow-400"
-                                      : "bg-red-500/10 text-red-400"
-                                  }`}
+                                        ? "bg-yellow-500/10 text-yellow-400"
+                                        : "bg-red-500/10 text-red-400"
+                                    }`}
                                 >
                                   {finding.status.toUpperCase()}
                                 </span>
@@ -656,13 +675,12 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                               <div className="flex items-start justify-between mb-2">
                                 <span className="text-white font-medium">{abnormal.parameter}</span>
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    abnormal.severity === "mild"
+                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${abnormal.severity === "mild"
                                       ? "bg-yellow-500/20 text-yellow-300"
                                       : abnormal.severity === "moderate"
-                                      ? "bg-orange-500/20 text-orange-300"
-                                      : "bg-red-500/20 text-red-300"
-                                  }`}
+                                        ? "bg-orange-500/20 text-orange-300"
+                                        : "bg-red-500/20 text-red-300"
+                                    }`}
                                 >
                                   {abnormal.severity}
                                 </span>
@@ -729,7 +747,7 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                         ) : (
                           // New format: RecommendationCategory[]
                           <div className="space-y-3">
-                            {(analysisResult.analysis.recommendations as Array<{category: string; items: string[]}>).map((recCategory, idx) => (
+                            {(analysisResult.analysis.recommendations as Array<{ category: string; items: string[] }>).map((recCategory, idx) => (
                               <div key={idx} className="bg-cyan-900/20 border border-cyan-400/20 rounded-lg p-4">
                                 <h5 className="text-sm font-medium text-cyan-400 mb-2">
                                   {recCategory.category}
