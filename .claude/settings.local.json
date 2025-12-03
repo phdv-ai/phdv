@@ -12,7 +12,12 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nFix Docker build: regenerate package-lock.json and add .nvmrc\n\n- Regenerate package-lock.json from scratch to ensure zod dependencies are properly resolved\n- Add .nvmrc file to specify Node.js 20.9.0 for deployment platforms\n- Ensures compatibility with Next.js 16 requirements (Node.js >=20.9.0)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push:*)",
       "Bash(git log:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.bio.xyz)",
+      "WebFetch(domain:ai-docs.bio.xyz)"
     ],
     "deny": [],
     "ask": []

@@ -7,7 +7,6 @@ import {
   Database,
   Home,
   Search,
-  Vote,
   Coins,
   Shield,
   CheckCircle,
@@ -27,7 +26,6 @@ const mainNavItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: Database },
   { href: "/researcher", label: "Research", icon: Search },
-  { href: "/dao", label: "DAO", icon: Vote },
 ]
 
 const toolsItems = [
