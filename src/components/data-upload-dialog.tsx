@@ -23,7 +23,7 @@ import {
   AlertTriangle,
   ShieldAlert,
 } from "lucide-react"
-import type { HealthAnalysisResponse } from "@/types/health"
+import type { PHDVResponse, PHDVQualityScore, PHDVHealthData, PHDVAnonymizedData } from "@/types/health"
 
 const uploadTypes = [
   {
@@ -68,7 +68,7 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState<HealthAnalysisResponse | null>(null)
+  const [analysisResult, setAnalysisResult] = useState<PHDVResponse | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [tokenAnimation, setTokenAnimation] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -115,14 +115,15 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
       formData.append("file", selectedFile)
       formData.append("walletAddress", address)
 
-      const response = await fetch("/api/analyze-health", {
+      // Use BioAgents PHDV API instead of Gemini
+      const response = await fetch("/api/phdv", {
         method: "POST",
         body: formData,
       })
 
-      const result: HealthAnalysisResponse = await response.json()
+      const result: PHDVResponse = await response.json()
 
-      if (result.success && result.analysis) {
+      if (result.success && result.state) {
         setAnalysisResult(result)
         setShowResults(true)
         setTokenAnimation(true)
@@ -454,105 +455,89 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
               </div>
             )}
 
-            {/* Analysis Results */}
-            {showResults && analysisResult?.analysis && (
+            {/* PHDV Analysis Results */}
+            {showResults && analysisResult?.state && (
               <div className="border border-cyan-400/30 rounded-xl overflow-hidden">
                 <div className="border-b border-cyan-400/20 bg-cyan-900/10 p-4">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-green-400" />
-                    <h3 className="font-bold text-white">Analysis Complete</h3>
+                    <h3 className="font-bold text-white">PHDV Analysis Complete</h3>
                   </div>
                 </div>
 
                 <div className="bg-cyan-900/5 p-5 space-y-6 max-h-[500px] overflow-y-auto">
-                  {/* Document Title */}
-                  {analysisResult.analysis.title && (
-                    <div className="pb-4 border-b border-cyan-400/20">
-                      <h3 className="text-xl font-bold text-white mb-1">
-                        {analysisResult.analysis.title}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <span>{analysisResult.analysis.documentType}</span>
-                        {analysisResult.analysis.date && (
-                          <>
-                            <span>•</span>
-                            <span>{analysisResult.analysis.date}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Risk Assessment */}
-                  {analysisResult.analysis.riskAssessment && (
-                    <div className="bg-gray-900/50 border border-cyan-400/20 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
+                  {/* Quality Score Overview */}
+                  {analysisResult.state.phdvQualityScores && analysisResult.state.phdvQualityScores.length > 0 && (
+                    <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
                         <h4 className="font-medium text-white flex items-center gap-2">
-                          <ShieldAlert className="h-4 w-4 text-cyan-400" />
-                          Risk Assessment
+                          <TrendingUp className="h-4 w-4 text-cyan-400" />
+                          Data Quality Score
                         </h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getRiskColor(analysisResult.analysis.riskAssessment.level)}`}>
-                          {analysisResult.analysis.riskAssessment.level.toUpperCase()} RISK
-                        </span>
-                      </div>
-                      {analysisResult.analysis.riskAssessment.factors.length > 0 && (
-                        <ul className="space-y-1 mb-3">
-                          {analysisResult.analysis.riskAssessment.factors.map((factor, idx) => (
-                            <li key={idx} className="text-sm text-gray-300 flex items-start gap-2">
-                              <span className="text-cyan-400 mt-1">•</span>
-                              <span>{factor}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {analysisResult.analysis.riskAssessment.followUpRequired && (
-                        <div className="pt-3 border-t border-cyan-400/20">
-                          <p className="text-sm text-yellow-400 flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4" />
-                            Follow-up required: {analysisResult.analysis.riskAssessment.followUpTiming}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-3xl font-bold ${
+                            analysisResult.state.phdvQualityScores[0].qualityScore.overallScore >= 80 ? 'text-green-400' :
+                            analysisResult.state.phdvQualityScores[0].qualityScore.overallScore >= 60 ? 'text-yellow-400' :
+                            'text-red-400'
+                          }`}>
+                            {analysisResult.state.phdvQualityScores[0].qualityScore.overallScore}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            analysisResult.state.phdvQualityScores[0].qualityScore.grade === 'A' ? 'bg-green-500/20 text-green-400' :
+                            analysisResult.state.phdvQualityScores[0].qualityScore.grade === 'B' ? 'bg-cyan-500/20 text-cyan-400' :
+                            analysisResult.state.phdvQualityScores[0].qualityScore.grade === 'C' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            Grade {analysisResult.state.phdvQualityScores[0].qualityScore.grade}
+                          </span>
                         </div>
-                      )}
+                      </div>
+
+                      {/* Component Scores */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {Object.entries(analysisResult.state.phdvQualityScores[0].qualityScore.componentScores).map(([key, value]: [string, any]) => (
+                          <div key={key} className="bg-gray-900/30 rounded-lg p-2">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                              <span className="text-white font-medium">{value}</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${value >= 80 ? 'bg-green-400' : value >= 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                                style={{ width: `${value}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* AI Summary */}
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30">
-                      <Sparkles className="h-4 w-4 text-purple-400" />
+                  {/* AI Response */}
+                  {analysisResult.text && (
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30">
+                        <Sparkles className="h-4 w-4 text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-white mb-2">AI Analysis</h4>
+                        <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+                          {analysisResult.text}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-white mb-2">AI Summary</h4>
-                      <p className="text-sm text-gray-300 leading-relaxed">
-                        {analysisResult.analysis.summary}
-                      </p>
-                      {analysisResult.analysis.confidence && (
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                            <span>Confidence Score</span>
-                            <span>{analysisResult.analysis.confidence}%</span>
-                          </div>
-                          <div className="w-full bg-gray-700 rounded-full h-2">
-                            <div
-                              className="bg-cyan-400 h-2 rounded-full transition-all duration-500"
-                              style={{ width: `${analysisResult.analysis.confidence}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Detailed Analysis - Collapsible */}
-                  {analysisResult.analysis.detailedAnalysis && (
+                  {/* Privacy & Anonymization */}
+                  {analysisResult.state.phdvAnonymizedData && analysisResult.state.phdvAnonymizedData.length > 0 && (
                     <div className="border border-cyan-400/20 rounded-lg overflow-hidden">
                       <button
                         onClick={() => toggleSection('detailedAnalysis')}
                         className="w-full p-3 bg-cyan-900/20 hover:bg-cyan-900/30 transition-colors flex items-center justify-between"
                       >
                         <h4 className="font-medium text-white flex items-center gap-2">
-                          <Brain className="h-4 w-4 text-cyan-400" />
-                          Detailed Analysis
+                          <ShieldAlert className="h-4 w-4 text-green-400" />
+                          Privacy Protection Applied
                         </h4>
                         {expandedSections.detailedAnalysis ? (
                           <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -561,52 +546,44 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                         )}
                       </button>
                       {expandedSections.detailedAnalysis && (
-                        <div className="p-4 bg-gray-900/30">
-                          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-                            {analysisResult.analysis.detailedAnalysis}
-                          </p>
+                        <div className="p-4 bg-gray-900/30 space-y-3">
+                          {analysisResult.state.phdvAnonymizedData.map((anon: PHDVAnonymizedData, idx: number) => (
+                            <div key={idx} className="bg-gray-900/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-white font-medium text-sm">{anon.filename}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  anon.anonymizationMetadata.privacyLevel === 'high' ? 'bg-green-500/20 text-green-400' :
+                                  anon.anonymizationMetadata.privacyLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {anon.anonymizationMetadata.privacyLevel.toUpperCase()} Privacy
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-400 space-y-1">
+                                {anon.anonymizationMetadata.maskedFields.length > 0 && (
+                                  <p>Masked: {anon.anonymizationMetadata.maskedFields.join(', ')}</p>
+                                )}
+                                {anon.anonymizationMetadata.generalizedFields.length > 0 && (
+                                  <p>Generalized: {anon.anonymizationMetadata.generalizedFields.join(', ')}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Medical Context - Collapsible */}
-                  {analysisResult.analysis.medicalContext && (
-                    <div className="border border-cyan-400/20 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => toggleSection('medicalContext')}
-                        className="w-full p-3 bg-cyan-900/20 hover:bg-cyan-900/30 transition-colors flex items-center justify-between"
-                      >
-                        <h4 className="font-medium text-white flex items-center gap-2">
-                          <Info className="h-4 w-4 text-cyan-400" />
-                          Medical Context & Education
-                        </h4>
-                        {expandedSections.medicalContext ? (
-                          <ChevronUp className="h-4 w-4 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        )}
-                      </button>
-                      {expandedSections.medicalContext && (
-                        <div className="p-4 bg-gray-900/30">
-                          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-                            {analysisResult.analysis.medicalContext}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Key Findings - Collapsible */}
-                  {analysisResult.analysis.findings && analysisResult.analysis.findings.length > 0 && (
+                  {/* Health Records - Collapsible */}
+                  {analysisResult.state.phdvHealthData && analysisResult.state.phdvHealthData.length > 0 && (
                     <div className="border border-cyan-400/20 rounded-lg overflow-hidden">
                       <button
                         onClick={() => toggleSection('findings')}
                         className="w-full p-3 bg-cyan-900/20 hover:bg-cyan-900/30 transition-colors flex items-center justify-between"
                       >
                         <h4 className="font-medium text-white flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-cyan-400" />
-                          Key Findings ({analysisResult.analysis.findings.length})
+                          <Database className="h-4 w-4 text-cyan-400" />
+                          Extracted Health Records ({(analysisResult.state.phdvHealthData[0] as any)?.metadata?.recordCount || analysisResult.state.phdvHealthData[0]?.healthData?.records?.length || analysisResult.state.phdvHealthData[0]?.healthData?.summary?.totalRecords || 0})
                         </h4>
                         {expandedSections.findings ? (
                           <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -616,41 +593,51 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                       </button>
                       {expandedSections.findings && (
                         <div className="p-4 bg-gray-900/30 space-y-3">
-                          {analysisResult.analysis.findings.map((finding, idx) => (
-                            <div key={idx} className="bg-gray-900/50 rounded-lg p-3">
-                              <div className="flex items-start justify-between mb-2">
-                                <span className="text-white font-medium">{finding.parameter}</span>
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${finding.status === "normal"
-                                      ? "bg-green-500/10 text-green-400"
-                                      : finding.status === "low" || finding.status === "high"
-                                        ? "bg-yellow-500/10 text-yellow-400"
-                                        : "bg-red-500/10 text-red-400"
-                                    }`}
-                                >
-                                  {finding.status.toUpperCase()}
-                                </span>
-                              </div>
-                              <div className="text-sm text-gray-300 space-y-1">
-                                <p>
-                                  Value: <span className="text-white">{finding.value} {finding.unit}</span>
-                                </p>
-                                {finding.referenceRange && (
-                                  <p className="text-gray-400">
-                                    Reference Range: {finding.referenceRange}
-                                  </p>
-                                )}
-                                {finding.category && (
-                                  <p className="text-gray-400">
-                                    Category: {finding.category}
-                                  </p>
-                                )}
-                                {finding.clinicalSignificance && (
-                                  <p className="text-cyan-300 mt-2 pt-2 border-t border-cyan-400/20">
-                                    {finding.clinicalSignificance}
-                                  </p>
-                                )}
-                              </div>
+                          {analysisResult.state.phdvHealthData.map((healthData: PHDVHealthData, idx: number) => (
+                            <div key={idx}>
+                              {/* Show summary if available */}
+                              {healthData.healthData?.summary && (
+                                <div className="bg-cyan-900/20 rounded-lg p-3 mb-3">
+                                  <p className="text-xs text-gray-400 mb-2">Data Summary</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(healthData.healthData.summary as any).recordTypes?.map((type: string, i: number) => (
+                                      <span key={i} className="px-2 py-1 bg-cyan-400/10 text-cyan-400 rounded text-xs capitalize">
+                                        {type.replace(/_/g, ' ')}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Show records */}
+                              {healthData.healthData?.records?.map((record: any, recordIdx: number) => (
+                                <div key={recordIdx} className="bg-gray-900/50 rounded-lg p-3 mb-2">
+                                  <div className="flex items-start justify-between mb-2">
+                                    <span className="text-white font-medium text-sm capitalize">
+                                      {record.recordType?.replace(/_/g, ' ') || 'Record'}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {record.timestamp ? new Date(record.timestamp).toLocaleDateString() : ''}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm text-gray-300 grid grid-cols-2 gap-2">
+                                    {Object.entries(record.data || {}).slice(0, 6).map(([key, value]: [string, any]) => (
+                                      <p key={key} className="text-xs">
+                                        <span className="text-gray-400 capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                                        <span className="text-white">{String(value)}</span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                              {/* Fallback: Show raw data if no records */}
+                              {(!healthData.healthData?.records || healthData.healthData.records.length === 0) && healthData.healthData && (
+                                <div className="bg-gray-900/50 rounded-lg p-3">
+                                  <p className="text-xs text-gray-400 mb-2">Raw Health Data</p>
+                                  <pre className="text-xs text-gray-300 overflow-auto max-h-40">
+                                    {JSON.stringify(healthData.healthData, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -658,124 +645,45 @@ export function DataUploadDialog({ onAnalysisComplete }: DataUploadDialogProps =
                     </div>
                   )}
 
-                  {/* Abnormal Values */}
-                  {analysisResult.analysis.abnormalValues &&
-                    analysisResult.analysis.abnormalValues.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-white mb-3 flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-yellow-400" />
-                          Attention Required
-                        </h4>
-                        <div className="space-y-3">
-                          {analysisResult.analysis.abnormalValues.map((abnormal, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <span className="text-white font-medium">{abnormal.parameter}</span>
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${abnormal.severity === "mild"
-                                      ? "bg-yellow-500/20 text-yellow-300"
-                                      : abnormal.severity === "moderate"
-                                        ? "bg-orange-500/20 text-orange-300"
-                                        : "bg-red-500/20 text-red-300"
-                                    }`}
-                                >
-                                  {abnormal.severity}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-300 mb-2">
-                                Value: {abnormal.value} (Expected: {abnormal.expectedRange})
-                              </p>
-                              {abnormal.meaning && (
-                                <p className="text-sm text-gray-300 mb-3 pb-3 border-b border-yellow-500/20">
-                                  {abnormal.meaning}
-                                </p>
-                              )}
-                              {abnormal.possibleCauses && abnormal.possibleCauses.length > 0 && (
-                                <div className="mb-3">
-                                  <p className="text-xs font-medium text-gray-400 mb-1">Possible Causes:</p>
-                                  <ul className="space-y-1">
-                                    {abnormal.possibleCauses.map((cause, i) => (
-                                      <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
-                                        <span className="text-yellow-400 mt-0.5">•</span>
-                                        <span>{cause}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              {abnormal.recommendedActions && abnormal.recommendedActions.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-400 mb-1">Recommended Actions:</p>
-                                  <ul className="space-y-1">
-                                    {abnormal.recommendedActions.map((action, i) => (
-                                      <li key={i} className="text-xs text-cyan-300 flex items-start gap-2">
-                                        <span className="text-cyan-400 mt-0.5">→</span>
-                                        <span>{action}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Categorized Recommendations */}
-                  {analysisResult.analysis.recommendations &&
-                    analysisResult.analysis.recommendations.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                  {/* Quality Improvements - Collapsible */}
+                  {analysisResult.state.phdvQualityScores && analysisResult.state.phdvQualityScores[0]?.qualityScore?.improvementSuggestions?.length > 0 && (
+                    <div className="border border-cyan-400/20 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => toggleSection('medicalContext')}
+                        className="w-full p-3 bg-cyan-900/20 hover:bg-cyan-900/30 transition-colors flex items-center justify-between"
+                      >
+                        <h4 className="font-medium text-white flex items-center gap-2">
                           <Brain className="h-4 w-4 text-cyan-400" />
-                          AI Recommendations
+                          Improvement Suggestions
                         </h4>
-                        {/* Handle both new categorized format and legacy string array format */}
-                        {typeof analysisResult.analysis.recommendations[0] === 'string' ? (
-                          // Legacy format: string[]
+                        {expandedSections.medicalContext ? (
+                          <ChevronUp className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                      {expandedSections.medicalContext && (
+                        <div className="p-4 bg-gray-900/30">
                           <ul className="space-y-2">
-                            {(analysisResult.analysis.recommendations as string[]).map((rec, idx) => (
+                            {analysisResult.state.phdvQualityScores[0].qualityScore.improvementSuggestions.map((suggestion: string, idx: number) => (
                               <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
-                                <span className="text-green-400 mt-1">✓</span>
-                                <span>{rec}</span>
+                                <span className="text-cyan-400 mt-1">→</span>
+                                <span>{suggestion}</span>
                               </li>
                             ))}
                           </ul>
-                        ) : (
-                          // New format: RecommendationCategory[]
-                          <div className="space-y-3">
-                            {(analysisResult.analysis.recommendations as Array<{ category: string; items: string[] }>).map((recCategory, idx) => (
-                              <div key={idx} className="bg-cyan-900/20 border border-cyan-400/20 rounded-lg p-4">
-                                <h5 className="text-sm font-medium text-cyan-400 mb-2">
-                                  {recCategory.category}
-                                </h5>
-                                <ul className="space-y-2">
-                                  {recCategory.items.map((item: string, i: number) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                                      <span className="text-green-400 mt-1">✓</span>
-                                      <span>{item}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  {/* Disclaimer */}
-                  {analysisResult.analysis.disclaimer && (
-                    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
-                      <p className="text-xs text-gray-400 leading-relaxed">
-                        <span className="font-medium text-gray-300">Disclaimer:</span>{" "}
-                        {analysisResult.analysis.disclaimer}
-                      </p>
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  {/* Disclaimer */}
+                  <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      <span className="font-medium text-gray-300">Privacy Notice:</span>{' '}
+                      Your health data has been processed securely. Personal identifiers have been anonymized and your data quality has been assessed for research compatibility.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

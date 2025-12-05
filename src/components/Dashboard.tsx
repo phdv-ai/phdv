@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Switch } from "@/components/ui/switch"
-import { Activity, Brain, Heart, Moon, TrendingUp, Zap, Coins, Share2, AlertCircle, Download, FileText, Calendar, CheckCircle, Clock, Sparkles, ChevronDown, ChevronUp, Shield, AlertTriangle, Info, ArrowRight, Stethoscope, Lightbulb } from "lucide-react"
+import { Activity, Brain, Heart, Moon, TrendingUp, Zap, Coins, Share2, AlertCircle, Download, FileText, Calendar, CheckCircle, Clock, Sparkles, ChevronDown, ChevronUp, Shield, AlertTriangle, Info, ArrowRight, Stethoscope, Lightbulb, Database, Lock } from "lucide-react"
 import { DataUploadDialog } from "@/components/data-upload-dialog"
 import { useAccount } from 'wagmi'
 import { DashboardResponse } from '@/types/health'
@@ -159,7 +159,11 @@ export default function Dashboard() {
                             <FileText className="h-5 w-5 text-cyan-400" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-white mb-1">{report.analysisData?.title || report.fileName}</h3>
+                            <h3 className="font-semibold text-white mb-1">
+                              {report.format === 'phdv'
+                                ? report.fileName
+                                : (report.analysisData?.title || report.fileName)}
+                            </h3>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
@@ -169,13 +173,34 @@ export default function Dashboard() {
                                   day: 'numeric'
                                 })}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400">
-                                {report.analysisData?.documentType || report.fileType}
-                              </span>
-                              <span className="flex items-center gap-1 text-green-400">
-                                <CheckCircle className="h-3 w-3" />
-                                AI Analysis Complete
-                              </span>
+                              {report.format === 'phdv' ? (
+                                <>
+                                  <span className="px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/30 flex items-center gap-1">
+                                    <Database className="h-3 w-3" />
+                                    PHDV Pipeline
+                                  </span>
+                                  {report.analysisData?.phdvQualityScores?.[0]?.qualityScore && (
+                                    <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                                      report.analysisData.phdvQualityScores[0].qualityScore.grade === 'A' ? 'bg-green-500/10 text-green-400' :
+                                      report.analysisData.phdvQualityScores[0].qualityScore.grade === 'B' ? 'bg-cyan-500/10 text-cyan-400' :
+                                      report.analysisData.phdvQualityScores[0].qualityScore.grade === 'C' ? 'bg-yellow-500/10 text-yellow-400' :
+                                      'bg-red-500/10 text-red-400'
+                                    }`}>
+                                      Grade {report.analysisData.phdvQualityScores[0].qualityScore.grade} • Score {report.analysisData.phdvQualityScores[0].qualityScore.overallScore}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <span className="px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400">
+                                    {report.analysisData?.documentType || report.fileType}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-green-400">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Gemini AI Analysis
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -190,48 +215,276 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* AI Analysis Details - Expandable */}
+                  {/* Analysis Details - Expandable */}
                   {expandedReport === report.id && report.analysisData && (
                     <div className="border-t border-cyan-400/20 bg-cyan-900/5 p-5 space-y-6">
-                      {/* Document Title */}
-                      {report.analysisData.title && (
-                        <div className="pb-4 border-b border-cyan-400/10">
-                          <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                            {report.analysisData.title}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400">
-                            {report.analysisData.documentType && (
-                              <span className="px-3 py-1 rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/30">
-                                {report.analysisData.documentType}
-                              </span>
-                            )}
-                            {report.analysisData.date && (
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                Report Date: {report.analysisData.date}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
 
-                      {/* AI Summary */}
-                      {report.analysisData.summary && (
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30">
-                            <Sparkles className="h-4 w-4 text-purple-400" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-white mb-2">AI Summary</h4>
-                            <p className="text-sm text-gray-300 leading-relaxed">
-                              {report.analysisData.summary}
+                      {/* === PHDV FORMAT === */}
+                      {report.format === 'phdv' ? (
+                        <>
+                          {/* Quality Score Overview */}
+                          {report.analysisData.phdvQualityScores && report.analysisData.phdvQualityScores.length > 0 && (
+                            <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-medium text-white flex items-center gap-2">
+                                  <TrendingUp className="h-4 w-4 text-cyan-400" />
+                                  Data Quality Score
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-3xl font-bold ${
+                                    report.analysisData.phdvQualityScores[0].qualityScore.overallScore >= 80 ? 'text-green-400' :
+                                    report.analysisData.phdvQualityScores[0].qualityScore.overallScore >= 60 ? 'text-yellow-400' :
+                                    'text-red-400'
+                                  }`}>
+                                    {report.analysisData.phdvQualityScores[0].qualityScore.overallScore}
+                                  </span>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                    report.analysisData.phdvQualityScores[0].qualityScore.grade === 'A' ? 'bg-green-500/20 text-green-400' :
+                                    report.analysisData.phdvQualityScores[0].qualityScore.grade === 'B' ? 'bg-cyan-500/20 text-cyan-400' :
+                                    report.analysisData.phdvQualityScores[0].qualityScore.grade === 'C' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    'bg-red-500/20 text-red-400'
+                                  }`}>
+                                    Grade {report.analysisData.phdvQualityScores[0].qualityScore.grade}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Component Scores */}
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                {Object.entries(report.analysisData.phdvQualityScores[0].qualityScore.componentScores || {}).map(([key, value]: [string, any]) => (
+                                  <div key={key} className="bg-gray-900/30 rounded-lg p-2">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                      <span className="text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      <span className="text-white font-medium">{value}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                      <div
+                                        className={`h-1.5 rounded-full ${value >= 80 ? 'bg-green-400' : value >= 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                                        style={{ width: `${value}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* AI Response */}
+                          {report.analysisData.aiResponse && (
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30">
+                                <Sparkles className="h-4 w-4 text-purple-400" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-white mb-2">AI Analysis</h4>
+                                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+                                  {report.analysisData.aiResponse}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Privacy & Anonymization */}
+                          {report.analysisData.phdvAnonymizedData && report.analysisData.phdvAnonymizedData.length > 0 && (
+                            <div className="border border-cyan-400/20 rounded-lg overflow-hidden">
+                              <button
+                                onClick={() => toggleSection(report.id, 'privacy')}
+                                className="w-full flex items-center justify-between p-4 hover:bg-cyan-400/5 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Lock className="h-4 w-4 text-green-400" />
+                                  <h4 className="font-medium text-white">Privacy Protection Applied</h4>
+                                </div>
+                                {isSectionExpanded(report.id, 'privacy') ? (
+                                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                                )}
+                              </button>
+                              {isSectionExpanded(report.id, 'privacy') && (
+                                <div className="p-4 pt-0 space-y-3">
+                                  {report.analysisData.phdvAnonymizedData.map((anon: any, idx: number) => (
+                                    <div key={idx} className="bg-gray-900/50 rounded-lg p-3">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-white font-medium text-sm">{anon.filename}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                          anon.anonymizationMetadata?.privacyLevel === 'high' ? 'bg-green-500/20 text-green-400' :
+                                          anon.anonymizationMetadata?.privacyLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                          'bg-red-500/20 text-red-400'
+                                        }`}>
+                                          {anon.anonymizationMetadata?.privacyLevel?.toUpperCase() || 'N/A'} Privacy
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-gray-400 space-y-1">
+                                        {anon.anonymizationMetadata?.maskedFields?.length > 0 && (
+                                          <p>Masked: {anon.anonymizationMetadata.maskedFields.join(', ')}</p>
+                                        )}
+                                        {anon.anonymizationMetadata?.generalizedFields?.length > 0 && (
+                                          <p>Generalized: {anon.anonymizationMetadata.generalizedFields.join(', ')}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Health Records */}
+                          {report.analysisData.phdvHealthData && report.analysisData.phdvHealthData.length > 0 && (
+                            <div className="border border-cyan-400/20 rounded-lg overflow-hidden">
+                              <button
+                                onClick={() => toggleSection(report.id, 'healthRecords')}
+                                className="w-full flex items-center justify-between p-4 hover:bg-cyan-400/5 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Database className="h-4 w-4 text-cyan-400" />
+                                  <h4 className="font-medium text-white">
+                                    Extracted Health Records ({report.analysisData.phdvHealthData[0]?.metadata?.recordCount || report.analysisData.phdvHealthData[0]?.healthData?.records?.length || report.analysisData.phdvHealthData[0]?.healthData?.summary?.totalRecords || 0})
+                                  </h4>
+                                </div>
+                                {isSectionExpanded(report.id, 'healthRecords') ? (
+                                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                                )}
+                              </button>
+                              {isSectionExpanded(report.id, 'healthRecords') && (
+                                <div className="p-4 pt-0 space-y-3">
+                                  {report.analysisData.phdvHealthData.map((healthData: any, idx: number) => (
+                                    <div key={idx}>
+                                      {/* Show summary if available */}
+                                      {healthData.healthData?.summary && (
+                                        <div className="bg-cyan-900/20 rounded-lg p-3 mb-3">
+                                          <p className="text-xs text-gray-400 mb-2">Data Summary</p>
+                                          <div className="flex flex-wrap gap-2">
+                                            {healthData.healthData.summary.recordTypes?.map((type: string, i: number) => (
+                                              <span key={i} className="px-2 py-1 bg-cyan-400/10 text-cyan-400 rounded text-xs capitalize">
+                                                {type.replace(/_/g, ' ')}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {/* Show records */}
+                                      {healthData.healthData?.records?.map((record: any, recordIdx: number) => (
+                                        <div key={recordIdx} className="bg-gray-900/50 rounded-lg p-3 mb-2">
+                                          <div className="flex items-start justify-between mb-2">
+                                            <span className="text-white font-medium text-sm capitalize">
+                                              {record.recordType?.replace(/_/g, ' ') || 'Record'}
+                                            </span>
+                                            <span className="text-xs text-gray-400">
+                                              {record.timestamp ? new Date(record.timestamp).toLocaleDateString() : ''}
+                                            </span>
+                                          </div>
+                                          <div className="text-sm text-gray-300 grid grid-cols-2 gap-2">
+                                            {Object.entries(record.data || {}).slice(0, 6).map(([key, value]: [string, any]) => (
+                                              <p key={key} className="text-xs">
+                                                <span className="text-gray-400 capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                                                <span className="text-white">{String(value)}</span>
+                                              </p>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {/* Fallback: Show raw data if no records */}
+                                      {(!healthData.healthData?.records || healthData.healthData.records.length === 0) && healthData.healthData && (
+                                        <div className="bg-gray-900/50 rounded-lg p-3">
+                                          <p className="text-xs text-gray-400 mb-2">Raw Health Data</p>
+                                          <pre className="text-xs text-gray-300 overflow-auto max-h-40">
+                                            {JSON.stringify(healthData.healthData, null, 2)}
+                                          </pre>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Quality Improvements */}
+                          {report.analysisData.phdvQualityScores?.[0]?.qualityScore?.improvementSuggestions?.length > 0 && (
+                            <div className="border border-purple-400/20 rounded-lg overflow-hidden">
+                              <button
+                                onClick={() => toggleSection(report.id, 'improvements')}
+                                className="w-full flex items-center justify-between p-4 hover:bg-purple-400/5 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Lightbulb className="h-4 w-4 text-purple-400" />
+                                  <h4 className="font-medium text-white">Improvement Suggestions</h4>
+                                </div>
+                                {isSectionExpanded(report.id, 'improvements') ? (
+                                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                                )}
+                              </button>
+                              {isSectionExpanded(report.id, 'improvements') && (
+                                <div className="p-4 pt-0">
+                                  <ul className="space-y-2">
+                                    {report.analysisData.phdvQualityScores[0].qualityScore.improvementSuggestions.map((suggestion: string, idx: number) => (
+                                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
+                                        <ArrowRight className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
+                                        <span>{suggestion}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Privacy Notice */}
+                          <div className="flex items-start gap-3 bg-gray-700/20 border border-gray-600/30 rounded-lg p-4">
+                            <Info className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                            <p className="text-xs text-gray-400 leading-relaxed">
+                              Your health data has been processed securely through the PHDV pipeline. Personal identifiers have been anonymized and your data quality has been assessed for research compatibility.
                             </p>
                           </div>
-                        </div>
-                      )}
+                        </>
+                      ) : (
+                        /* === GEMINI FORMAT === */
+                        <>
+                          {/* Document Title */}
+                          {report.analysisData.title && (
+                            <div className="pb-4 border-b border-cyan-400/10">
+                              <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                                {report.analysisData.title}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+                                {report.analysisData.documentType && (
+                                  <span className="px-3 py-1 rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/30">
+                                    {report.analysisData.documentType}
+                                  </span>
+                                )}
+                                {report.analysisData.date && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    Report Date: {report.analysisData.date}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
-                      {/* Risk Assessment */}
-                      {report.analysisData.riskAssessment && (
+                          {/* AI Summary */}
+                          {report.analysisData.summary && (
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30">
+                                <Sparkles className="h-4 w-4 text-purple-400" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-white mb-2">AI Summary</h4>
+                                <p className="text-sm text-gray-300 leading-relaxed">
+                                  {report.analysisData.summary}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Risk Assessment */}
+                          {report.analysisData.riskAssessment && (
                         <div className="bg-gradient-to-r from-cyan-900/20 to-purple-900/20 border border-cyan-400/30 rounded-lg p-4">
                           <div className="flex items-start gap-3">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${report.analysisData.riskAssessment.level === 'low'
@@ -264,7 +517,7 @@ export default function Dashboard() {
                                 <div className="mb-3">
                                   <p className="text-xs text-gray-400 mb-2 font-medium">Risk Factors:</p>
                                   <ul className="space-y-1">
-                                    {report.analysisData.riskAssessment.factors.map((factor, idx) => (
+                                    {report.analysisData.riskAssessment.factors.map((factor: string, idx: number) => (
                                       <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
                                         <AlertTriangle className="h-3 w-3 text-yellow-400 mt-0.5 shrink-0" />
                                         <span>{factor}</span>
@@ -372,7 +625,7 @@ export default function Dashboard() {
                             Key Findings
                           </h4>
                           <div className="space-y-3">
-                            {report.analysisData.findings.map((finding, index) => (
+                            {report.analysisData.findings.map((finding: any, index: number) => (
                               <div key={index} className="bg-cyan-400/5 border border-cyan-400/20 rounded-lg p-3">
                                 <div className="flex items-start gap-2">
                                   <span className="text-cyan-400 mt-1">•</span>
@@ -417,7 +670,7 @@ export default function Dashboard() {
                             Abnormal Values
                           </h4>
                           <div className="space-y-3">
-                            {report.analysisData.abnormalValues.map((abnormal, index) => (
+                            {report.analysisData.abnormalValues.map((abnormal: any, index: number) => (
                               <div key={index} className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
                                 <div className="flex items-start gap-2">
                                   <AlertTriangle className="h-5 w-5 text-yellow-400 mt-1 shrink-0" />
@@ -447,7 +700,7 @@ export default function Dashboard() {
                                       <div>
                                         <p className="text-xs font-medium text-yellow-400 mb-2">Possible Causes:</p>
                                         <ul className="space-y-1">
-                                          {abnormal.possibleCauses.map((cause, idx) => (
+                                          {abnormal.possibleCauses.map((cause: string, idx: number) => (
                                             <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
                                               <span className="text-yellow-400 mt-1">•</span>
                                               <span>{cause}</span>
@@ -461,7 +714,7 @@ export default function Dashboard() {
                                       <div>
                                         <p className="text-xs font-medium text-cyan-400 mb-2">Recommended Actions:</p>
                                         <ul className="space-y-1">
-                                          {abnormal.recommendedActions.map((action, idx) => (
+                                          {abnormal.recommendedActions.map((action: string, idx: number) => (
                                             <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
                                               <ArrowRight className="h-3 w-3 text-cyan-400 mt-1 shrink-0" />
                                               <span>{action}</span>
@@ -522,14 +775,16 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      {/* Disclaimer */}
-                      {report.analysisData.disclaimer && (
-                        <div className="flex items-start gap-3 bg-gray-700/20 border border-gray-600/30 rounded-lg p-4">
-                          <Info className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
-                          <p className="text-xs text-gray-400 leading-relaxed">
-                            {report.analysisData.disclaimer}
-                          </p>
-                        </div>
+                          {/* Disclaimer */}
+                          {report.analysisData.disclaimer && (
+                            <div className="flex items-start gap-3 bg-gray-700/20 border border-gray-600/30 rounded-lg p-4">
+                              <Info className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                              <p className="text-xs text-gray-400 leading-relaxed">
+                                {report.analysisData.disclaimer}
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

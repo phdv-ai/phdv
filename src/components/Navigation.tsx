@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  Lock,
 } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
@@ -29,6 +30,7 @@ const mainNavItems = [
 ]
 
 const toolsItems = [
+  { href: "/phdv", label: "Data Vault", icon: Lock },
   { href: "/validator", label: "Validator", icon: CheckCircle },
   { href: "/staking", label: "Staking", icon: Layers },
   { href: "/developer", label: "Developer", icon: Code },

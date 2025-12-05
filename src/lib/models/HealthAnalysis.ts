@@ -1,21 +1,41 @@
 import mongoose, { Schema, model, models } from 'mongoose';
 
+// Legacy Gemini analysis format
+export interface IGeminiAnalysisData {
+  title?: string;
+  documentType?: string;
+  date?: string;
+  summary?: string;
+  detailedAnalysis?: string;
+  medicalContext?: string;
+  findings?: any[];
+  abnormalValues?: any[];
+  recommendations?: any[];
+  riskAssessment?: any;
+  confidence?: number;
+  disclaimer?: string;
+}
+
+// PHDV analysis format
+export interface IPHDVAnalysisData {
+  phdvHealthData?: any[];
+  phdvAnonymizedData?: any[];
+  phdvQualityScores?: any[];
+  phdvAggregateStats?: any;
+  aiResponse?: string;
+  processingSteps?: Record<string, { start: number; end: number }>;
+}
+
 export interface IHealthAnalysis {
   _id: any;
   walletAddress: string;
   fileName: string;
   fileSize: number;
   fileType: string;
-  format: 'markdown' | 'json';
+  format: 'markdown' | 'json' | 'phdv';
   markdown?: string;
-  analysisData?: {
-    documentType?: string;
-    date?: string;
-    summary?: string;
-    findings?: any[];
-    abnormalValues?: any[];
-    recommendations?: string[];
-  };
+  // Can be either Gemini or PHDV format
+  analysisData?: IGeminiAnalysisData | IPHDVAnalysisData;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,8 +61,8 @@ const HealthAnalysisSchema = new Schema<IHealthAnalysis>(
     },
     format: {
       type: String,
-      enum: ['markdown', 'json'],
-      default: 'markdown',
+      enum: ['markdown', 'json', 'phdv'],
+      default: 'json',
     },
     markdown: {
       type: String,

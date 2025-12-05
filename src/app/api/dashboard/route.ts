@@ -63,27 +63,24 @@ export async function GET(request: Request) {
       (report) => new Date(report.createdAt) >= oneWeekAgo
     ).length;
 
-    // Format reports for response - JSON format only
-    // The health analysis system now exclusively uses JSON format with enhanced fields:
-    // - title: AI-generated descriptive title
-    // - detailedAnalysis: In-depth analysis (200+ words)
-    // - medicalContext: Educational information (150+ words)
-    // - riskAssessment: Structured risk evaluation
-    // - recommendations: Categorized by Immediate Actions, Lifestyle Modifications, Follow-up Care
+    // Format reports for response
+    // Supports multiple formats:
+    // - 'json': Legacy Gemini AI analysis with enhanced fields
+    // - 'phdv': PHDV pipeline (extraction, anonymization, quality scoring)
+    // - 'markdown': Deprecated legacy format
     const formattedReports: DashboardReport[] = reports.map((report) => ({
       id: String(report._id),
       fileName: report.fileName,
       fileSize: report.fileSize,
       fileType: report.fileType,
-      format: 'json', // Always JSON - markdown format has been deprecated
+      format: report.format || 'json', // Use actual format from database
       createdAt: report.createdAt instanceof Date
         ? report.createdAt.toISOString()
         : new Date(report.createdAt).toISOString(),
       updatedAt: report.updatedAt instanceof Date
         ? report.updatedAt.toISOString()
         : new Date(report.updatedAt).toISOString(),
-      // Include enhanced analysis data with all new fields
-      // Note: Legacy records may have markdown format, but we only expose analysisData
+      // Include analysis data (can be Gemini or PHDV format)
       analysisData: report.analysisData,
     }));
 
