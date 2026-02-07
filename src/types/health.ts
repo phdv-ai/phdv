@@ -277,3 +277,60 @@ export interface PHDVAggregateStats {
   averageCompleteness: number;
   averageMissingDataRate: number;
 }
+
+// ==========================================
+// Type Guards and Validation Helpers
+// ==========================================
+
+/**
+ * Check if file type is allowed for health analysis
+ */
+export function isAllowedFileType(mimeType: string): mimeType is AllowedFileType {
+  return ALLOWED_FILE_TYPES.includes(mimeType as AllowedFileType);
+}
+
+/**
+ * Check if file size is within limits
+ */
+export function isFileSizeValid(size: number): boolean {
+  return size > 0 && size <= MAX_FILE_SIZE;
+}
+
+/**
+ * Validate file for health analysis
+ */
+export function validateHealthFile(file: File): { valid: boolean; error?: string } {
+  if (!isAllowedFileType(file.type)) {
+    return { valid: false, error: `File type ${file.type} is not supported` };
+  }
+  if (!isFileSizeValid(file.size)) {
+    return { valid: false, error: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` };
+  }
+  return { valid: true };
+}
+
+/**
+ * Get quality grade color class
+ */
+export function getQualityGradeColor(grade: PHDVQualityScore['qualityScore']['grade']): string {
+  const colors: Record<typeof grade, string> = {
+    'A': 'text-green-400',
+    'B': 'text-cyan-400',
+    'C': 'text-yellow-400',
+    'D': 'text-orange-400',
+    'F': 'text-red-400',
+  };
+  return colors[grade];
+}
+
+/**
+ * Get risk level color class
+ */
+export function getRiskLevelColor(level: RiskAssessment['level']): string {
+  const colors: Record<typeof level, string> = {
+    'low': 'text-green-400',
+    'moderate': 'text-yellow-400',
+    'high': 'text-red-400',
+  };
+  return colors[level];
+}
